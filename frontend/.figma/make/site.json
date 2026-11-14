@@ -1,0 +1,10 @@
+{
+  "description": "Monitor and analyze AC motor health with real-time sensor data, predictive maintenance insights, and historical trends for efficient operations.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}

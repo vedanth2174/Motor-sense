@@ -1,0 +1,151 @@
+{
+  "id": "motorsense",
+  "realm": "motorsense",
+  "displayName": "MotorSense Industrial IoT",
+  "enabled": true,
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "bruteForceProtected": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "admin",
+        "description": "Administrator with full system privileges"
+      },
+      {
+        "name": "engineer",
+        "description": "Maintenance engineer capable of acknowledging alerts and training models"
+      },
+      {
+        "name": "viewer",
+        "description": "Operator with read-only dashboard access"
+      }
+    ]
+  },
+  "groups": [],
+  "clients": [
+    {
+      "clientId": "motorsense-web",
+      "name": "MotorSense Web SPA",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": false,
+      "rootUrl": "",
+      "baseUrl": "/",
+      "redirectUris": [
+        "http://localhost:5173/*",
+        "http://localhost:8443/*",
+        "http://localhost:3000/*",
+        "http://127.0.0.1:5173/*",
+        "http://127.0.0.1:8443/*",
+        "http://motorsense.local/*"
+      ],
+      "webOrigins": [
+        "http://localhost:5173",
+        "http://localhost:8443",
+        "http://localhost:3000",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:8443",
+        "http://motorsense.local",
+        "*"
+      ],
+      "protocol": "openid-connect",
+      "protocolMappers": [
+        {
+          "name": "audience-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "motorsense-api",
+            "id.token.claim": "true",
+            "access.token.claim": "true"
+          }
+        },
+        {
+          "name": "realm-roles-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "claim.name": "realm_access.roles",
+            "jsonType.label": "String",
+            "multivalued": "true",
+            "access.token.claim": "true"
+          }
+        }
+      ]
+    },
+    {
+      "clientId": "motorsense-api",
+      "name": "MotorSense Backend API",
+      "enabled": true,
+      "publicClient": false,
+      "bearerOnly": true,
+      "protocol": "openid-connect"
+    }
+  ],
+  "users": [
+    {
+      "username": "admin1",
+      "enabled": true,
+      "email": "admin@motorsense.local",
+      "firstName": "System",
+      "lastName": "Admin",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "admin123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "admin",
+        "engineer",
+        "viewer"
+      ]
+    },
+    {
+      "username": "engineer1",
+      "enabled": true,
+      "email": "engineer@motorsense.local",
+      "firstName": "Plant",
+      "lastName": "Engineer",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "engineer123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "engineer",
+        "viewer"
+      ]
+    },
+    {
+      "username": "viewer1",
+      "enabled": true,
+      "email": "viewer@motorsense.local",
+      "firstName": "Line",
+      "lastName": "Operator",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "viewer123",
+          "temporary": false
+        }
+      ],
+      "realmRoles": [
+        "viewer"
+      ]
+    }
+  ]
+}

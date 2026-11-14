@@ -1,0 +1,104 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: motorsense-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: motor
+      POSTGRES_PASSWORD: motorpass
+      POSTGRES_DB: motorsense
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U motor -d motorsense"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    container_name: motorsense-keycloak
+    restart: unless-stopped
+    command: start-dev --import-realm
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: "true"
+      KC_HTTP_ENABLED: "true"
+      KC_HOSTNAME: "http://localhost:8080"
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./keycloak/motorsense-realm.json:/opt/keycloak/data/import/motorsense-realm.json:ro
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep '200 OK'"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: motorsense-backend
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql+psycopg://motor:motorpass@postgres:5432/motorsense
+      AUTH_ENABLED: ${AUTH_ENABLED:-false}
+      OIDC_ISSUER: http://localhost:8080/realms/motorsense
+      OIDC_JWKS_URL: http://keycloak:8080/realms/motorsense/protocol/openid-connect/certs
+      OIDC_AUDIENCE: motorsense-api
+      CORS_ORIGINS: http://localhost:5173,http://localhost:8443,http://localhost:3000,http://motorsense.local
+      MODEL_DIR: /models
+      LLM_PROVIDER: ${LLM_PROVIDER:-none}
+      LLM_BASE_URL: ${LLM_BASE_URL:-http://host.docker.internal:11434/v1}
+      LLM_MODEL: ${LLM_MODEL:-qwen2.5:7b}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+    volumes:
+      - motor_models:/models
+    depends_on:
+      postgres:
+        condition: service_healthy
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: motorsense-frontend
+    restart: unless-stopped
+    ports:
+      - "5173:80"
+    environment:
+      API_BASE_URL: http://localhost:8000
+      AUTH_ENABLED: ${AUTH_ENABLED:-false}
+      KEYCLOAK_URL: http://localhost:8080
+      KEYCLOAK_REALM: motorsense
+      KEYCLOAK_CLIENT_ID: motorsense-web
+    depends_on:
+      - backend
+
+  simulator:
+    build:
+      context: ./simulator
+      dockerfile: Dockerfile
+    container_name: motorsense-simulator
+    restart: unless-stopped
+    environment:
+      API_URL: http://backend:8000/api/v1/ingest
+      DEVICE_API_KEY: ms_demo_esp32_device_key_12345
+      MACHINE_ID: MOTOR_001
+    depends_on:
+      - backend
+    profiles:
+      - demo
+
+volumes:
+  postgres_data:
+  motor_models:
