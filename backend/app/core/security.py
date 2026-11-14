@@ -56,6 +56,9 @@ def verify_device_api_key(
     ).first()
 
     if not device:
+        if not settings.AUTH_ENABLED:
+            logger.debug(f"Device key not found in db, but AUTH_ENABLED=False. Allowing ingest.")
+            return None
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid or inactive device API key"

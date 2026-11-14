@@ -1,40 +1,42 @@
-# ── Backend Dockerfile ──────────────────────────────────────────────────────
-# Strategy: ZERO C compilation. Every package must come as a pre-built wheel.
-# psycopg[binary] bundles its own libpq → no gcc/libpq-dev needed.
-# numpy, scikit-learn, joblib all publish manylinux wheels for linux/amd64.
-# --only-binary :all: makes pip FAIL (not fall back to source) if no wheel exists.
-# ────────────────────────────────────────────────────────────────────────────
+# ── Stage 1: Wheel Builder (download pre-compiled wheels) ───────────────────
+FROM python:3.12-slim AS builder
 
-FROM python:3.12-slim
+WORKDIR /build
 
-ENV PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONUNBUFFERED=1 \
-    PIP_NO_CACHE_DIR=1 \
+ENV PIP_NO_CACHE_DIR=1 \
     PIP_PREFER_BINARY=1 \
     PIP_DEFAULT_TIMEOUT=300
 
+COPY requirements.txt .
+
+# Downloads only official binary wheels for linux/amd64 directly to /build/wheels
+RUN mkdir -p /build/wheels && \
+    pip install --upgrade pip && \
+    pip wheel --only-binary :all: --wheel-dir=/build/wheels -r requirements.txt
+
+# ── Stage 2: Minimal Runtime ────────────────────────────────────────────────
+FROM python:3.12-slim AS runtime
+
 WORKDIR /app
 
-# Non-root user
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1
+
+# Create non-root application user
 RUN groupadd -r motorsense && useradd -r -g motorsense motorsense
 
-# ── Step 1: heavy scientific stack (long, cached separately) ─────────────────
-# Split into own layer so a code change doesn't re-download 300 MB of wheels.
-RUN pip install --upgrade pip \
- && pip install --only-binary :all: \
-        "numpy>=1.26.0,<2" \
-        "scikit-learn>=1.4.0,<2" \
-        "joblib>=1.3.2,<2"
-
-# ── Step 2: remaining application dependencies ───────────────────────────────
+# Copy requirements and wheels from builder stage
 COPY requirements.txt .
-RUN pip install --only-binary :all: -r requirements.txt
+COPY --from=builder /build/wheels /tmp/wheels
 
-# ── Step 3: persistent storage dirs ─────────────────────────────────────────
-RUN mkdir -p /models /data \
-    && chown -R motorsense:motorsense /models /data /app
+# Install offline directly using requirements.txt (avoids wildcard version collisions)
+RUN pip install --no-index --find-links=/tmp/wheels -r requirements.txt && \
+    rm -rf /tmp/wheels requirements.txt
 
-# ── Step 4: application code ─────────────────────────────────────────────────
+# Setup persistent storage directories
+RUN mkdir -p /models /data && chown -R motorsense:motorsense /models /data /app
+
+# Copy application source code
 COPY --chown=motorsense:motorsense app/      ./app/
 COPY --chown=motorsense:motorsense alembic/  ./alembic/
 COPY --chown=motorsense:motorsense alembic.ini .

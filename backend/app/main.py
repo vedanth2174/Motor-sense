@@ -43,6 +43,22 @@ async def lifespan(app: FastAPI):
                 db.add(default_motor)
                 db.commit()
                 logger.info("Created default machine 'MOTOR_001'")
+
+            # Create default demo device with known API key
+            from app.models.all_models import Device
+            from app.core.security import hash_api_key
+            demo_key = "ms_demo_esp32_device_key_12345"
+            default_device = db.query(Device).filter(Device.machine_id == "MOTOR_001").first()
+            if not default_device:
+                default_device = Device(
+                    machine_id="MOTOR_001",
+                    name="ESP32 Factory Gateway",
+                    api_key_hash=hash_api_key(demo_key),
+                    is_active=True
+                )
+                db.add(default_device)
+                db.commit()
+                logger.info("Created default device for 'MOTOR_001' with demo key")
         finally:
             db.close()
     except Exception as e:
@@ -72,12 +88,8 @@ app.add_middleware(
 # Mount API v1 router
 app.include_router(api_v1_router)
 
-# Prometheus instrumentation (optional)
-try:
-    from prometheus_fastapi_instrumentator import Instrumentator
-    Instrumentator().instrument(app).expose(app, endpoint="/metrics")
-except Exception:
-    pass
+# Prometheus instrumentation disabled (incompatible with nested routers in FastAPI 0.160+)
+# Instrumentator().instrument(app).expose(app, endpoint="/metrics")
 
 
 # -------------------------------------------------------------

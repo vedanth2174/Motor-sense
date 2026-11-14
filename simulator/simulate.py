@@ -5,7 +5,7 @@ import time
 import requests
 from datetime import datetime, timezone
 
-API_URL = os.getenv("API_URL", "http://localhost:8000/api/v1/ingest")
+API_URL = os.getenv("API_URL", "http://localhost:8005/api/v1/ingest")
 API_KEY = os.getenv("DEVICE_API_KEY", "ms_demo_esp32_device_key_12345")
 MACHINE_ID = os.getenv("MACHINE_ID", "MOTOR_001")
 
@@ -65,12 +65,13 @@ def main():
         for i in range(520):
             payload = generate_reading("healthy", i)
             try:
-                r = requests.post(API_URL, json=payload, headers=headers, timeout=5)
+                r = requests.post(API_URL, json=payload, headers=headers, timeout=10)
                 if r.status_code not in (200, 201):
                     print(f"Warning: got HTTP {r.status_code}: {r.text}")
             except Exception as e:
                 print(f"Error connecting to backend: {e}")
-                time.sleep(1)
+                time.sleep(0.5)
+            time.sleep(0.02)
             if i % 50 == 0:
                 print(f"  Posted {i+1}/520 readings...")
         print("[+] Finished seeding 520 baseline readings!")

@@ -13,7 +13,7 @@ declare global {
 
 export const getRuntimeConfig = () => {
   return {
-    API_BASE_URL: window.__CONFIG__?.API_BASE_URL || "http://localhost:8000",
+    API_BASE_URL: window.__CONFIG__?.API_BASE_URL || "http://localhost:8005",
     AUTH_ENABLED: window.__CONFIG__?.AUTH_ENABLED ?? false,
     KEYCLOAK_URL: window.__CONFIG__?.KEYCLOAK_URL || "http://localhost:8080",
     KEYCLOAK_REALM: window.__CONFIG__?.KEYCLOAK_REALM || "motorsense",

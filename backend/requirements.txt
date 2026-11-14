@@ -1,8 +1,5 @@
 # MotorSense backend dependencies
-# ALL packages here must have pre-built manylinux wheels on PyPI.
-# psycopg[binary] bundles libpq — no system libpq/gcc needed.
-# numpy, scikit-learn, joblib are installed first (separate Docker layer).
-
+# All packages provide pre-built manylinux binary wheels on PyPI.
 fastapi>=0.110.0,<1
 uvicorn[standard]>=0.28.0,<1
 pydantic>=2.6.0,<3
@@ -14,6 +11,6 @@ pyjwt[crypto]>=2.8.0,<3
 httpx>=0.27.0,<1
 prometheus-fastapi-instrumentator>=7.0.0,<8
 python-multipart>=0.0.9,<1
-numpy>=1.26.0,<2
-scikit-learn>=1.4.0,<2
-joblib>=1.3.2,<2
+numpy>=1.26.0
+scikit-learn>=1.4.0
+joblib>=1.3.2

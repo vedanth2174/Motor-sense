@@ -31,25 +31,25 @@ react(),
       },
     },
     server: {
-  host: process.env.FIGMA_DEV_SERVER_HOST || '0.0.0.0',
-  port: parseInt(process.env.PORT || '8443'),
-  strictPort: true,
-  proxy: {
-    '/api': {
-      target: 'http://localhost:8000',
-      changeOrigin: true,
+      host: process.env.FIGMA_DEV_SERVER_HOST || '0.0.0.0',
+      port: parseInt(process.env.PORT || '5173'),
+      strictPort: false,
+      proxy: {
+        '/api': {
+          target: 'http://localhost:8005',
+          changeOrigin: true,
+        },
+        '/download.csv': {
+          target: 'http://localhost:8005',
+          changeOrigin: true,
+        },
+      },
+      watch: {
+        ignored: [
+          '**/.figma/**',
+        ],
+      },
     },
-    '/download.csv': {
-      target: 'http://localhost:8000',
-      changeOrigin: true,
-    },
-  },
-  watch: {
-    ignored: [
-      '**/.figma/**',
-    ],
-  },
-},
   }
 })
 
