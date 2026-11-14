@@ -1,0 +1,12 @@
+# MotorSense agent rules
+- Read docs/PLAN.md first. Work one phase at a time; stop at each phase's acceptance checks.
+- Before coding a phase, post a short plan (files to touch, commands to verify). After coding, run the tests and report results honestly, including failures.
+- Never hardcode URLs, ports, credentials or paths. Everything via env vars / config.
+- Backend: routes stay thin; logic in services/; every endpoint has Pydantic schemas and a test.
+- Schema changes only through Alembic migrations.
+- LLM output is never trusted for safety decisions; rules decide critical alerts.
+- Tests must not call real LLMs or external networks; use fake providers.
+- Do not commit secrets. .env is git-ignored; .env.example is kept current.
+- Prefer small commits with clear messages, one logical change each.
+- If a requirement is ambiguous or a plan decision looks wrong, ask before building around it.
+- Keep README and docs/ in sync with what actually works.

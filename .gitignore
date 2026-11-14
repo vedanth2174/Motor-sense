@@ -1,0 +1,51 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+ENV/
+
+# Node
+node_modules/
+.npm
+.vite/
+*.tsbuildinfo
+
+# Environment & local secrets
+.env
+.env.local
+.env.*.local
+*.log
+
+# Databases & local state
+*.db-journal
+*.sqlite3-journal
+/data/
+/models/*.joblib
+/models/*.pkl
+
+# OS files
+.DS_Store
+Thumbs.db
