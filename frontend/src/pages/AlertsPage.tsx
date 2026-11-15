@@ -41,111 +41,151 @@ export function AlertsPage({ machine }: { machine?: Machine }) {
     return true
   })
 
+  const unackCount = alerts.filter((a) => !a.acknowledged_at).length
+
   return (
     <div className="content">
       <div className="page-intro">
         <div>
-          <span className="eyebrow">SYSTEM NOTIFICATIONS</span>
-          <h1>Asset Alerts & Exception Log</h1>
+          <span className="eyebrow">OPERATIONS MONITORING</span>
+          <h1>Asset Alerts & Incident Log</h1>
           <p>
-            Deterministic rule violations and ML statistical anomalies recorded for <b>{machine?.machine_id}</b>.
+            Deterministic rule boundary trips and statistical anomalies for <b>{machine?.machine_id}</b>.
           </p>
         </div>
-        <div className="intro-actions">
+        <div className="intro-actions" style={{ display: "flex", gap: "8px", alignItems: "center" }}>
           <select
             value={severityFilter}
             onChange={(e) => setSeverityFilter(e.target.value)}
             style={{
-              padding: "8px 12px",
+              padding: "0 28px 0 10px",
+              height: "36px",
               borderRadius: "6px",
-              background: "#1e293b",
-              color: "#fff",
-              border: "1px solid #334155"
+              background: "#152238",
+              color: "#f8fafc",
+              border: "1px solid rgba(255, 255, 255, 0.12)",
+              fontSize: "11px"
             }}
           >
             <option value="all">All Severities</option>
-            <option value="critical">Critical</option>
-            <option value="warning">Warning</option>
-            <option value="info">Info</option>
+            <option value="critical">Critical Only</option>
+            <option value="warning">Warning Only</option>
+            <option value="info">Info Only</option>
           </select>
           <button className="secondary-button" onClick={loadAlerts}>
-            <Icon name="refresh" /> Refresh
+            <Icon name="refresh" size={14} /> Refresh
           </button>
         </div>
       </div>
 
-      <div className="panel" style={{ padding: "20px" }}>
+      {unackCount > 0 && (
+        <div className="active-alert-banner">
+          <div className="alert-banner-left">
+            <span className="alert-beacon-icon">
+              <Icon name="alert-triangle" size={18} />
+            </span>
+            <div className="alert-banner-text">
+              <strong>{unackCount} UNACKNOWLEDGED INCIDENT(S) REQUIRE ATTENTION</strong>
+              <span>Review severity ratings below. Engineers may sign off on events directly.</span>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="panel" style={{ padding: "0", overflow: "hidden" }}>
         {filtered.length === 0 ? (
-          <div style={{ textAlign: "center", padding: "40px", color: "#94a3b8" }}>
-            <Icon name="check" size={32} />
-            <p style={{ marginTop: "8px" }}>No alerts match the selected filter. System running normally.</p>
+          <div style={{ textAlign: "center", padding: "48px 20px", color: "#94a3b8" }}>
+            <span style={{ color: "#10b981", display: "inline-block", marginBottom: "8px" }}>
+              <Icon name="check" size={36} />
+            </span>
+            <h3 style={{ color: "#f8fafc", fontSize: "16px", marginBottom: "4px" }}>System Operating Normally</h3>
+            <p style={{ fontSize: "12px", color: "#64748b" }}>No alerts match the selected severity filter.</p>
           </div>
         ) : (
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left", fontSize: "14px" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", textAlign: "left" }}>
               <thead>
-                <tr style={{ borderBottom: "1px solid #334155", color: "#94a3b8" }}>
-                  <th style={{ padding: "10px" }}>Time</th>
-                  <th style={{ padding: "10px" }}>Severity</th>
-                  <th style={{ padding: "10px" }}>Source</th>
-                  <th style={{ padding: "10px" }}>Alert Message</th>
-                  <th style={{ padding: "10px" }}>Status</th>
-                  <th style={{ padding: "10px" }}>Action</th>
+                <tr>
+                  <th style={{ padding: "12px 16px" }}>Timestamp</th>
+                  <th style={{ padding: "12px 16px" }}>Severity</th>
+                  <th style={{ padding: "12px 16px" }}>Engine</th>
+                  <th style={{ padding: "12px 16px" }}>Message / Diagnostic</th>
+                  <th style={{ padding: "12px 16px" }}>Status</th>
+                  <th style={{ padding: "12px 16px" }}>Action</th>
                 </tr>
               </thead>
               <tbody>
                 {filtered.map((alert) => {
                   const isAck = Boolean(alert.acknowledged_at)
+                  const isCritical = alert.severity === "critical"
+                  const isWarning = alert.severity === "warning"
+                  const rowClass = !isAck ? (isCritical ? "unack-critical" : isWarning ? "unack-warning" : "") : ""
+
                   return (
-                    <tr key={alert.id} style={{ borderBottom: "1px solid #1e293b" }}>
-                      <td style={{ padding: "10px" }}>{new Date(alert.created_at).toLocaleString()}</td>
-                      <td style={{ padding: "10px", fontWeight: 700, textTransform: "uppercase" }}>
+                    <tr key={alert.id} className={rowClass}>
+                      <td style={{ padding: "12px 16px", fontFamily: "JetBrains Mono, monospace", fontSize: "10.5px" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                          {!isAck && (
+                            <span
+                              style={{
+                                width: "6px",
+                                height: "6px",
+                                borderRadius: "50%",
+                                background: isCritical ? "#ef4444" : "#f59e0b",
+                                display: "inline-block",
+                                boxShadow: isCritical ? "0 0 8px #ef4444" : "0 0 8px #f59e0b"
+                              }}
+                            />
+                          )}
+                          <span>{new Date(alert.created_at).toLocaleString()}</span>
+                        </div>
+                      </td>
+                      <td style={{ padding: "12px 16px" }}>
                         <span
-                          style={{
-                            color:
-                              alert.severity === "critical"
-                                ? "#ef4444"
-                                : alert.severity === "warning"
-                                ? "#eab308"
-                                : "#38bdf8"
-                          }}
+                          className={`table-status ${
+                            alert.severity === "critical" ? "critical" : alert.severity === "warning" ? "warning" : "safe"
+                          }`}
                         >
+                          <i />
                           {alert.severity}
                         </span>
                       </td>
-                      <td style={{ padding: "10px", textTransform: "uppercase", fontSize: "12px", color: "#94a3b8" }}>
+                      <td style={{ padding: "12px 16px", textTransform: "uppercase", fontSize: "10px", color: "#60a5fa", fontWeight: 700 }}>
                         {alert.source}
                       </td>
-                      <td style={{ padding: "10px", color: "#f8fafc" }}>{alert.message}</td>
-                      <td style={{ padding: "10px" }}>
+                      <td style={{ padding: "12px 16px", color: "#f8fafc", fontWeight: 500, fontSize: "11.5px" }}>
+                        {alert.message}
+                      </td>
+                      <td style={{ padding: "12px 16px" }}>
                         {isAck ? (
-                          <span style={{ color: "#4ade80", fontSize: "12px" }}>
-                            Ack by {alert.acknowledged_by}
+                          <span style={{ color: "#34d399", fontSize: "10.5px", fontWeight: 600 }}>
+                            Acknowledged by {alert.acknowledged_by}
                           </span>
                         ) : (
-                          <span style={{ color: "#f87171", fontSize: "12px", fontWeight: 600 }}>
-                            OPEN
+                          <span style={{ color: "#f87171", fontSize: "10px", fontWeight: 800, letterSpacing: "0.5px" }}>
+                            OPEN / UNRESOLVED
                           </span>
                         )}
                       </td>
-                      <td style={{ padding: "10px" }}>
-                        {!isAck && (
+                      <td style={{ padding: "12px 16px" }}>
+                        {!isAck ? (
                           <button
                             onClick={() => handleAcknowledge(alert.id)}
                             disabled={!isEngineer}
+                            className="primary-button"
                             style={{
-                              background: isEngineer ? "#3b82f6" : "#475569",
-                              color: "#fff",
-                              border: "none",
-                              padding: "4px 10px",
-                              borderRadius: "4px",
-                              cursor: isEngineer ? "pointer" : "not-allowed",
-                              fontSize: "12px",
-                              fontWeight: 600
+                              height: "28px",
+                              padding: "0 10px",
+                              fontSize: "10px",
+                              opacity: isEngineer ? 1 : 0.5,
+                              cursor: isEngineer ? "pointer" : "not-allowed"
                             }}
+                            title={isEngineer ? "Mark alert acknowledged" : "Engineer role required to acknowledge"}
                           >
-                            Acknowledge
+                            <Icon name="check" size={12} /> Acknowledge
                           </button>
+                        ) : (
+                          <span style={{ color: "#64748b", fontSize: "10px" }}>Resolved</span>
                         )}
                       </td>
                     </tr>

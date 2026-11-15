@@ -18,13 +18,15 @@ export function Dashboard({
   readings,
   latest,
   isLive,
-  setPage
+  setPage,
+  alertCount = 0
 }: {
   machine?: Machine
   readings: Reading[]
   latest: Reading
   isLive: boolean
   setPage: (p: Page) => void
+  alertCount?: number
 }) {
   const [selectedSensor, setSelectedSensor] = useState<SensorKey>("temperature")
   const [timeWindow, setTimeWindow] = useState("30 min")
@@ -33,6 +35,7 @@ export function Dashboard({
   const status: Status = latest.status || (latest.condition as Status) || (isLive ? "SAFE" : "NO DATA")
   const isHealthy = status === "SAFE"
   const isCritical = status === "CRITICAL"
+  const isWarning = status === "WARNING"
 
   const downloadCsv = () => {
     if (machine) {
@@ -52,17 +55,56 @@ export function Dashboard({
         </div>
         <div className="intro-actions">
           <button className="secondary-button" onClick={() => setPage("History")}>
-            <Icon name="clock" /> View History
+            <Icon name="clock" size={14} /> View History
           </button>
           <button className="primary-button" onClick={downloadCsv}>
-            <Icon name="download" /> Export CSV
+            <Icon name="download" size={14} /> Export CSV
           </button>
         </div>
       </div>
 
+      {/* Subtle Active Alert Banner */}
+      {(alertCount > 0 || isCritical || isWarning) && (
+        <div className={`active-alert-banner ${isWarning && !isCritical ? "warning-level" : ""}`}>
+          <div className="alert-banner-left">
+            <span className="alert-beacon-icon">
+              <Icon name="alert-triangle" size={18} />
+            </span>
+            <div className="alert-banner-text">
+              <strong>
+                {isCritical
+                  ? "CRITICAL MOTOR EXCEPTION DETECTED"
+                  : isWarning
+                  ? "SYSTEM ANOMALY OR ELEVATED LOAD DETECTED"
+                  : `${alertCount} ACTIVE UNACKNOWLEDGED ALERT(S)`}
+              </strong>
+              <span>
+                {latest.recommendation || "Deterministic rules or Isolation Forest flagged an operating threshold breach."}
+              </span>
+            </div>
+          </div>
+          <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+            <button
+              className="danger-button"
+              onClick={() => setPage("Alerts")}
+              style={{ fontSize: "10px", height: "30px" }}
+            >
+              <Icon name="alert-triangle" size={12} /> Review Alerts ({alertCount})
+            </button>
+            <button
+              className="primary-button"
+              onClick={() => setPage("AI Diagnostics")}
+              style={{ fontSize: "10px", height: "30px" }}
+            >
+              <Icon name="cpu" size={12} /> AI Diagnosis
+            </button>
+          </div>
+        </div>
+      )}
+
       {!isLive && (
         <div className="preview-banner">
-          <Icon name="wifi" />
+          <Icon name="wifi" size={18} />
           <div>
             <strong>Telemetry stream paused or awaiting sensor gateway</strong>
             <span>
@@ -76,7 +118,7 @@ export function Dashboard({
       <div className={`health-hero status-${status.toLowerCase().replace(/\s+/g, "-")}`}>
         <div className="health-main">
           <span className="health-icon">
-            <Icon name={isCritical ? "alert-triangle" : isHealthy ? "check" : "heart"} size={32} />
+            <Icon name={isCritical ? "alert-triangle" : isHealthy ? "check" : "heart"} size={26} />
           </span>
           <div>
             <span className="eyebrow">MOTOR HEALTH STATUS</span>
@@ -84,7 +126,7 @@ export function Dashboard({
             <p>
               {isCritical
                 ? "Physical rule threshold exceeded. Immediate inspection recommended."
-                : status === "WARNING"
+                : isWarning
                 ? "Elevated telemetry or statistical anomaly detected."
                 : isLive
                 ? "Motor is operating inside verified healthy parameters."
@@ -92,6 +134,7 @@ export function Dashboard({
             </p>
           </div>
         </div>
+
         <div className="health-metrics">
           <div>
             <span>BASELINE MODEL</span>
@@ -102,21 +145,16 @@ export function Dashboard({
             <span>DIAGNOSIS ACTION</span>
             <button
               onClick={() => setPage("AI Diagnostics")}
+              className="primary-button"
               style={{
+                height: "28px",
+                fontSize: "10px",
                 marginTop: "4px",
-                padding: "6px 12px",
-                background: "#3b82f6",
-                border: "none",
-                borderRadius: "6px",
-                color: "#fff",
-                fontWeight: 600,
-                cursor: "pointer",
-                display: "flex",
-                alignItems: "center",
-                gap: "6px"
+                padding: "0 10px",
+                gap: "5px"
               }}
             >
-              <Icon name="cpu" size={14} /> AI Analysis
+              <Icon name="cpu" size={12} /> AI Analysis
             </button>
           </div>
           <div>
@@ -152,7 +190,7 @@ export function Dashboard({
       </div>
 
       {/* Trend & Controls Panel */}
-      <div className="dashboard-bottom" style={{ marginTop: "24px" }}>
+      <div className="dashboard-bottom" style={{ marginTop: "20px" }}>
         <section className="panel trend-panel">
           <div className="section-heading">
             <div>

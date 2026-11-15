@@ -31,7 +31,8 @@ export function Sidebar({
   machines,
   selectedMachineId,
   setSelectedMachineId,
-  isLive
+  isLive,
+  alertCount = 0
 }: {
   page: Page
   setPage: (p: Page) => void
@@ -41,6 +42,7 @@ export function Sidebar({
   selectedMachineId: string
   setSelectedMachineId: (id: string) => void
   isLive: boolean
+  alertCount?: number
 }) {
   const { user, hasRole, logout } = useAuth()
   const activeMachine = machines.find((m) => m.machine_id === selectedMachineId) || machines[0]
@@ -50,7 +52,7 @@ export function Sidebar({
       <aside className={sidebarOpen ? "sidebar open" : "sidebar"}>
         <div className="brand">
           <div className="brand-mark">
-            <Icon name="motor" size={24} />
+            <Icon name="motor" size={22} />
           </div>
           <div>
             <strong>MotorSense</strong>
@@ -63,24 +65,24 @@ export function Sidebar({
           <span>ACTIVE ASSET</span>
           <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
             <div className="asset-icon">
-              <Icon name="motor" />
+              <Icon name="motor" size={16} />
             </div>
             <select
               value={selectedMachineId}
               onChange={(e) => setSelectedMachineId(e.target.value)}
               style={{
                 background: "transparent",
-                color: "inherit",
+                color: "#f8fafc",
                 border: "none",
                 fontWeight: 600,
-                fontSize: "14px",
+                fontSize: "13px",
                 cursor: "pointer",
                 width: "100%",
                 outline: "none"
               }}
             >
               {machines.map((m) => (
-                <option key={m.machine_id} value={m.machine_id} style={{ background: "#1e293b", color: "#fff" }}>
+                <option key={m.machine_id} value={m.machine_id} style={{ background: "#0e1626", color: "#f8fafc" }}>
                   {m.name || m.machine_id} ({m.machine_id})
                 </option>
               ))}
@@ -97,6 +99,7 @@ export function Sidebar({
         <nav>
           {navItems.map((item) => {
             if (item.role && !hasRole(item.role)) return null
+            const isAlertItem = item.label === "Alerts"
             return (
               <div key={item.label}>
                 {item.section && <span className="nav-title">{item.section}</span>}
@@ -107,9 +110,12 @@ export function Sidebar({
                     setSidebarOpen(false)
                   }}
                 >
-                  <Icon name={item.icon} />
+                  <Icon name={item.icon} size={16} />
                   <span>{item.label}</span>
                   {item.label === "Live Monitoring" && isLive && <i className="live-dot" />}
+                  {isAlertItem && alertCount > 0 && (
+                    <span className="nav-alert-badge">{alertCount}</span>
+                  )}
                 </button>
               </div>
             )
@@ -120,21 +126,31 @@ export function Sidebar({
         <div className="sidebar-footer">
           <div className="esp-status">
             <span className={isLive ? "status-icon connected" : "status-icon"}>
-              <Icon name="wifi" />
+              <Icon name="wifi" size={16} />
             </span>
             <div>
-              <strong>ESP32 {isLive ? "Connected" : "Offline"}</strong>
+              <strong>ESP32 {isLive ? "Online" : "Offline"}</strong>
               <small>{selectedMachineId} · {isLive ? "Telemetry Active" : "Waiting for Stream"}</small>
             </div>
           </div>
           <div className="version" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span>User: <b>{user?.username || "Guest"}</b></span>
-            <button
-              onClick={logout}
-              style={{ background: "transparent", border: "none", color: "#f87171", cursor: "pointer", fontSize: "11px" }}
-            >
-              Sign Out
-            </button>
+            <span>v2.1 Enterprise</span>
+            {user && (
+              <button
+                onClick={logout}
+                style={{
+                  background: "transparent",
+                  border: "none",
+                  color: "#64748b",
+                  fontSize: "9px",
+                  cursor: "pointer",
+                  padding: "2px 4px"
+                }}
+                title="Sign out of MotorSense"
+              >
+                Sign out
+              </button>
+            )}
           </div>
         </div>
       </aside>
@@ -142,7 +158,7 @@ export function Sidebar({
       {sidebarOpen && (
         <button
           className="backdrop"
-          aria-label="Close menu"
+          aria-label="Close sidebar"
           onClick={() => setSidebarOpen(false)}
         />
       )}

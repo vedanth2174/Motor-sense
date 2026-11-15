@@ -1,219 +1,194 @@
-# MotorSense — Build Fix & Startup Guide
+# MotorSense — Complete Build, Fix, Startup & Testing Guide
 
-## What Was Fixed (Already Applied to Code)
+## 🛠️ Summary of Fixes & Updates Applied
 
-| Fix | File | Why |
+| Component | File | Issue & Resolution |
 |---|---|---|
-| OOM-safe Dockerfile | `backend/Dockerfile` | Split pip into 2 stages: heavy libs (numpy/sklearn) first, then rest — uses pre-built wheels, no C compilation |
-| Pinned dependency ranges | `backend/requirements.txt` | Faster pip resolver = less RAM |
-| Missing `__init__.py` | 6 files in `backend/app/` | Python package imports would fail without these |
-| `.wslconfig` created | `C:\Users\ASUS\.wslconfig` | Gives WSL2 6 GB RAM so Docker build doesn't OOM |
+| **Frontend Dockerfile** | `frontend/Dockerfile` | Fixed `addgroup: group 'nginx' in use` error by removing redundant user creation in `nginx:alpine` and fixed npm dependencies so `vite build` succeeds. |
+| **Docker Compose** | `docker-compose.yml` | Updated services (`backend`, `frontend`, `simulator`) to use pre-built images (`motorsense-backend:latest`, `motorsense-frontend:latest`, `motorsense-simulator:latest`) for isolated image building. |
+| **Frontend UI Revamp** | `frontend/src/` | Converted light/pastel styling into a **professional industrial dark mode** with boxy 6–8px rounded corners, high-contrast white text, colored status accents (green/red/blue/amber), and subtle alert animations. |
+| **Subtle Alert Animations** | `SensorCard.tsx`, `Header.tsx`, `Dashboard.tsx`, `AlertsPage.tsx` | Added automated sensor threshold breach indicators, breathing border glows (`alertPulseRed`/`alertPulseAmber`), radar beacon pings, and topbar/sidebar incident badges. |
+| **Settings Configuration** | `~/.claude/settings.json` | Fixed JSON syntax error (`End of file expected. @L4`) by placing `"env"` inside the root object. |
 
 ---
 
-## Step 1 — Restart WSL2 (REQUIRED — do this now)
+## 🚀 Step 1 — Prepare Environment Configuration
 
-The `.wslconfig` only takes effect after a full WSL2 restart.
-
-Open **PowerShell as Administrator** and run:
+Ensure your environment variables are configured in the project root:
 
 ```powershell
-wsl --shutdown
+cd C:\Studies\Mayur_Final_Year_Project\Motor-sense
+
+# Copy sample environment configuration if .env doesn't exist
+if (-not (Test-Path .env)) { Copy-Item .env.example .env }
 ```
 
-Then restart Docker Desktop from the system tray.  
-Wait ~30 seconds for Docker to fully start (green icon).
+> [!NOTE]
+> By default, `AUTH_ENABLED=false` in `.env`, allowing you to immediately test the frontend and API without signing into Keycloak.
 
 ---
 
-## Step 2 — Run the Build
+## 📦 Step 2 — Build Container Images Individually
 
-Open a **regular PowerShell** window (not admin), then:
+Build each Docker image before launching Docker Compose:
 
 ```powershell
-cd "d:\project\BACKUP PROJECT"
+# 1. Build Backend API Image
+docker build -t motorsense-backend:latest ./backend
 
-# Git commit the fixes first
-git add -A
-git commit -m "fix: OOM-safe Dockerfile, pin deps, add missing __init__.py files"
+# 2. Build React Frontend SPA Image
+docker build -t motorsense-frontend:latest ./frontend
 
-# Build and start (no simulator by default)
-docker compose up --build -d
+# 3. Build ESP32 Telemetry Simulator Image
+docker build -t motorsense-simulator:latest ./simulator
 ```
 
-Expected build time: **~5–8 minutes** (first time, downloads layers).
+---
 
-> [!TIP]
-> If `docker compose` says "unknown shorthand flag: -f", your Docker version
-> uses `docker-compose` (v1). Try: `docker-compose up --build -d`
+## ⚡ Step 3 — Start the Stack with Docker Compose
+
+### Option A: Core Stack (PostgreSQL, Keycloak, Backend, Frontend)
+```powershell
+docker compose up -d
+```
+
+### Option B: Core Stack + Live Simulated Telemetry Stream (Recommended for Testing)
+```powershell
+docker compose --profile demo up -d
+```
+*(The `--profile demo` flag automatically spins up `motorsense-simulator` to send live mock sensor readings every 3 seconds).*
 
 ---
 
-## Step 3 — Verify Everything Is Up
+## 🔍 Step 4 — Verify Running Services
 
+Check the container status:
 ```powershell
-# Check all containers are running
 docker compose ps
-
-# Backend health
-curl http://localhost:8000/api/v1/health/ready
-
-# Frontend
-start http://localhost:5173
-
-# Keycloak admin console (if AUTH_ENABLED=true)
-start http://localhost:8080
 ```
 
-Expected `docker compose ps` output:
+Expected output:
 ```
 NAME                    STATUS        PORTS
 motorsense-postgres     Up (healthy)  0.0.0.0:5432->5432/tcp
 motorsense-keycloak     Up (healthy)  0.0.0.0:8080->8080/tcp
-motorsense-backend      Up (healthy)  0.0.0.0:8000->8000/tcp
+motorsense-backend      Up            0.0.0.0:8000->8000/tcp
 motorsense-frontend     Up            0.0.0.0:5173->80/tcp
+motorsense-simulator    Up            (optional, demo profile)
 ```
+
+### Access URLs:
+* **React Dashboard:** [http://localhost:5173](http://localhost:5173)
+* **FastAPI Swagger Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
+* **Backend Health Check:** [http://localhost:8000/api/v1/health/ready](http://localhost:8000/api/v1/health/ready)
+* **Keycloak Admin Console:** [http://localhost:8080](http://localhost:8080) (User: `admin` / Password: `admin`)
 
 ---
 
-## Step 4 — Seed Baseline Data
+## 🧬 Step 5 — Seed Baseline Telemetry for Machine Learning
 
-The ML model (Isolation Forest) needs ~500 normal readings to train.
+The Layer 2 Isolation Forest model requires **500+ valid healthy samples** before it can be trained.
+
+Run the baseline seeder command directly inside the running container (takes ~15 seconds):
+```powershell
+docker exec motorsense-simulator python simulate.py --seed-baseline
+```
+
+*(Alternatively, if running outside Docker: `python simulator/simulate.py --seed-baseline`)*
+
+### Train the ML Model via the UI:
+1. Open [http://localhost:5173](http://localhost:5173) in your browser.
+2. Navigate to **Motor Health** in the sidebar.
+3. You will see 520/500 samples collected (100% progress).
+4. Click **"Approve Baseline"**, then click **"Train Isolation Forest"**.
+5. The machine status will transition to **HEALTHY_BASELINE_READY**.
+
+---
+
+## 🚨 Step 6 — Fault Injection & Alert Testing
+
+Test how the system, trip rules, and UI animations react under abnormal operating conditions.
+
+### Inject Faults Using the Simulator Container:
 
 ```powershell
-# From the project root — seeds 520 normal readings for MOTOR_001
-python simulator/simulate.py --seed-baseline
+# 1. Overcurrent Fault (> 110% rated current ~10.8A)
+docker exec motorsense-simulator python simulate.py --mode overcurrent --count 5
 
-# Then start live simulation (healthy mode)
-python simulator/simulate.py --mode healthy --interval 3
+# 2. Overheat Fault (> 80°C max thermal limit ~86°C)
+docker exec motorsense-simulator python simulate.py --mode overheat --count 5
+
+# 3. High Vibration Fault (> 4.5 mm/s² ISO limit ~5.2 mm/s²)
+docker exec motorsense-simulator python simulate.py --mode vibration --count 5
+
+# 4. Undervoltage Fault (< 90% nominal voltage ~195V)
+docker exec motorsense-simulator python simulate.py --mode undervoltage --count 5
+
+# 5. Multi-Sensor Degradation Drift (Tests Isolation Forest)
+docker exec motorsense-simulator python simulate.py --mode drift --count 20
 ```
 
-After ~520 readings the backend auto-trains the model and sets machine status to `ACTIVE`.
+### What to Observe in the Frontend:
+1. **Sensor Card Glow:** The breached metric card pulses with a subtle red border glow (`alertPulseRed`) and displays a blinking `[!] CRITICAL` chip.
+2. **Active Alert Banner:** The dashboard header displays an alert beacon warning banner with quick links to **Review Alerts** or **AI Diagnosis**.
+3. **Topbar & Sidebar Badges:** The notification bell and sidebar "Alerts" link display active unacknowledged counter badges.
+4. **Alerts Page:** Navigate to the **Alerts** page to view the exception in the incident table and click **"Acknowledge"**.
 
 ---
 
-## Step 5 — Test Fault Injection
+## 🧪 Step 7 — Automated Smoke / E2E Verification
 
-Open a second terminal and inject faults:
+Run the automated end-to-end verification script against the running backend:
 
 ```powershell
-# Overcurrent fault
-python simulator/simulate.py --mode overcurrent --interval 2
-
-# Overheat
-python simulator/simulate.py --mode overheat --interval 2
-
-# High vibration
-python simulator/simulate.py --mode vibration --interval 2
+# Run smoke test suite
+$env:API_URL="http://localhost:8000"; python smoke_test.py
 ```
 
-Watch the **Alerts** page in the frontend at `http://localhost:5173` — alerts should appear in real-time via SSE.
+This verifies:
+* Health and database readiness endpoints (`/health/live`, `/health/ready`).
+* Machine registry listing (`/machines`).
+* Ingestion of nominal data and condition evaluation (`/ingest`).
+* Injection of overcurrent fault and verification that a `CRITICAL` alert was produced.
+* Alert queries and lifecycle verification.
 
 ---
 
-## Step 6 — AI Diagnosis (Works Without Ollama)
+## 🔐 Keycloak Authentication (Optional)
 
-**Default (`LLM_PROVIDER=none`):** The `FallbackProvider` gives deterministic rule-based diagnosis. No Ollama required.
+When you are ready to enable enterprise OAuth2/OIDC authentication:
 
-To use Ollama locally:
-1. Install Ollama: https://ollama.com
-2. Pull a model: `ollama pull qwen2.5:7b`
-3. Add to your `.env`:
+1. In `.env`, set:
+   ```env
+   AUTH_ENABLED=true
    ```
-   LLM_PROVIDER=ollama
-   LLM_BASE_URL=http://host.docker.internal:11434/v1
-   LLM_MODEL=qwen2.5:7b
+2. Restart the backend and frontend:
+   ```powershell
+   docker compose restart backend frontend
    ```
-4. Restart: `docker compose up -d backend`
+3. Open `http://localhost:5173`. The application will redirect to the Keycloak login screen.
+4. Default pre-seeded realm accounts (`motorsense-realm.json`):
+   * **Admin:** `admin1` / `admin123`
+   * **Engineer:** `engineer1` / `engineer123`
+   * **Viewer:** `viewer1` / `viewer123`
 
 ---
 
-## Keycloak Configuration (Only Needed When AUTH_ENABLED=true)
+## 🛑 Stopping or Resetting the Environment
 
-By default `AUTH_ENABLED=false` — the system runs with a mock admin user. You can fully use and test the app without Keycloak.
-
-**When you're ready to enable auth:**
-
-### Step A — Import realm (auto-done by docker compose)
-The realm JSON at `keycloak/motorsense-realm.json` is automatically imported when Keycloak starts.
-
-### Step B — Log in to Keycloak Admin
-- URL: http://localhost:8080
-- User: `admin` / Password: `admin`
-- Realm: `motorsense` (pre-imported)
-
-### Step C — Pre-created demo users (change passwords!)
-| Username | Password | Role | Can Do |
-|---|---|---|---|
-| `admin1` | `Admin@123` | `admin` | Everything |
-| `engineer1` | `Eng@1234` | `engineer` | Acknowledge alerts, train models |
-| `viewer1` | `View@1234` | `viewer` | Read-only dashboard |
-
-> [!IMPORTANT]
-> Change these passwords in Keycloak Admin Console → Users before exposing to any network.
-
-### Step D — Enable auth
-Edit `.env` in project root:
-```env
-AUTH_ENABLED=true
-```
-Then restart:
 ```powershell
-docker compose up -d backend frontend
-```
+# Stop core services
+docker compose down
 
-The frontend will now redirect to Keycloak login.
+# Stop full stack INCLUDING the demo simulator container (prevents "network in use" error):
+docker compose --profile demo down
+# Or stop all profile services:
+docker compose --profile * down
 
-### Step E — OIDC URLs (already configured in docker-compose.yml)
-```
-OIDC_ISSUER=http://localhost:8080/realms/motorsense    # browser-facing
-OIDC_JWKS_URL=http://keycloak:8080/realms/motorsense/protocol/openid-connect/certs  # backend internal
-OIDC_AUDIENCE=motorsense-api
-```
-These match because Keycloak's `KC_HOSTNAME` is set to `http://localhost:8080`.
+# If a container lingers and holds onto the network:
+docker stop motorsense-simulator; docker rm motorsense-simulator
+docker network prune -f
 
----
-
-## Troubleshooting
-
-### "Bus error (core dumped)" during docker build
-→ WSL2 OOM. Did you run `wsl --shutdown` and restart Docker? Check `.wslconfig` has `memory=6GB`.
-
-### Backend starts then crashes with "No module named 'app'"
-→ Missing `__init__.py` — already fixed. Rebuild: `docker compose build backend`
-
-### Frontend shows blank page / network error
-→ Check `nginx.conf` proxy. `API_BASE_URL` in docker-compose.yml points to `http://localhost:8000`. Ensure backend is healthy first.
-
-### Keycloak redirect loop
-→ `KC_HOSTNAME` must match the browser URL. Both must be `http://localhost:8080` (not `keycloak:8080`).
-
-### "Device API key invalid" from simulator
-→ The default key `ms_demo_esp32_device_key_12345` matches the Device seeded at startup for MOTOR_001. If you created a new Device via the API, copy its key from the response.
-
----
-
-## Architecture Quick Reference
-
-```
-Browser (React + Keycloak.js)
-  │  port 5173
-  ▼
-nginx (SPA + /api proxy)
-  │  proxy_pass to backend:8000
-  ▼
-FastAPI Backend
-  ├── /api/v1/ingest        ← ESP32/simulator sends telemetry here (device API key)
-  ├── /api/v1/machines      ← CRUD, baseline, train, predict
-  ├── /api/v1/alerts        ← List + acknowledge
-  ├── /api/v1/maintenance   ← Maintenance log
-  ├── /api/v1/stream        ← SSE real-time push
-  └── /metrics              ← Prometheus
-  │
-  ├── services/rules.py     ← Layer 1: deterministic thresholds (always runs)
-  ├── services/scoring.py   ← Layer 2: Isolation Forest anomaly score
-  └── services/llm/         ← Layer 3: AI narrative diagnosis (optional)
-  │
-PostgreSQL (port 5432)      ← Alembic-managed schema
-Keycloak (port 8080)        ← JWT issuer (optional when AUTH_ENABLED=false)
+# Stop and clear database volumes (fresh data reset)
+docker compose --profile * down -v
 ```

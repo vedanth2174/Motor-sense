@@ -100,6 +100,7 @@ function MotorSenseApp() {
         selectedMachineId={selectedMachineId}
         setSelectedMachineId={setSelectedMachineId}
         isLive={isLive}
+        alertCount={alertCount}
       />
 
       <main>
@@ -109,6 +110,7 @@ function MotorSenseApp() {
           isLive={isLive}
           lastUpdated={lastUpdated}
           alertCount={alertCount}
+          onNavigateToAlerts={() => setPage("Alerts")}
         />
 
         <div className="content">
@@ -119,6 +121,7 @@ function MotorSenseApp() {
               latest={latest}
               isLive={isLive}
               setPage={setPage}
+              alertCount={alertCount}
             />
           )}
 
