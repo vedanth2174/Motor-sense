@@ -11,12 +11,15 @@ import { HistoryPage } from "./pages/HistoryPage"
 import { MaintenancePage } from "./pages/MaintenancePage"
 import { MachinesPage } from "./pages/MachinesPage"
 import { DataExportPage } from "./pages/DataExportPage"
-import { AuthProvider } from "./auth/AuthContext"
+import { AuthProvider, useAuth } from "./auth/AuthContext"
+import { AuthScreen } from "./components/AuthScreen"
+import { Icon } from "./components/Icons"
 import { useSensorStream } from "./hooks/useSensorStream"
 import { Page, Machine, Reading } from "./types"
 import { api } from "./api/client"
 
 function MotorSenseApp() {
+  const { authenticated, login, loginAs } = useAuth()
   const [page, setPage] = useState<Page>("Dashboard")
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [machines, setMachines] = useState<Machine[]>([])
@@ -88,6 +91,10 @@ function MotorSenseApp() {
   }
 
   const latest = latestReading || fallbackReading
+
+  if (!authenticated) {
+    return <AuthScreen />
+  }
 
   return (
     <div className="app-shell">

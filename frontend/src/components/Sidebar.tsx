@@ -133,24 +133,45 @@ export function Sidebar({
               <small>{selectedMachineId} · {isLive ? "Telemetry Active" : "Waiting for Stream"}</small>
             </div>
           </div>
-          <div className="version" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-            <span>v2.1 Enterprise</span>
-            {user && (
+          {user && (
+            <div style={{
+              marginTop: "8px",
+              padding: "8px 10px",
+              background: "#080d1a",
+              borderRadius: "6px",
+              border: "1px solid #1e293b",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between"
+            }}>
+              <div style={{ overflow: "hidden", paddingRight: "6px" }}>
+                <span style={{ display: "block", color: "#f8fafc", fontSize: "11px", fontWeight: 600, textOverflow: "ellipsis", overflow: "hidden", whiteSpace: "nowrap" }}>
+                  {user.fullName || user.username}
+                </span>
+                <span style={{ fontSize: "9px", color: user.isAdmin ? "#60a5fa" : user.isEngineer ? "#fbbf24" : "#34d399", fontWeight: 700, textTransform: "uppercase" }}>
+                  {user.roleName || (user.isAdmin ? "Admin" : user.isEngineer ? "Service Man" : "Operator")}
+                </span>
+              </div>
               <button
                 onClick={logout}
                 style={{
-                  background: "transparent",
-                  border: "none",
-                  color: "#64748b",
-                  fontSize: "9px",
+                  background: "#1e293b",
+                  border: "1px solid #334155",
+                  color: "#cbd5e1",
+                  fontSize: "10px",
+                  borderRadius: "4px",
+                  padding: "4px 8px",
                   cursor: "pointer",
-                  padding: "2px 4px"
+                  fontWeight: 600
                 }}
                 title="Sign out of MotorSense"
               >
                 Sign out
               </button>
-            )}
+            </div>
+          )}
+          <div className="version" style={{ marginTop: "6px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+            <span>v2.1 Enterprise</span>
           </div>
         </div>
       </aside>

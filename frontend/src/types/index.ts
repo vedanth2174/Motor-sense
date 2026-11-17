@@ -110,8 +110,11 @@ export interface AiAnalysis {
 
 export interface UserProfile {
   username: string
+  fullName?: string
   email?: string
   roles: string[]
+  roleName?: string
   isAdmin: boolean
   isEngineer: boolean
+  isOperator?: boolean
 }

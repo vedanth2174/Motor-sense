@@ -33,7 +33,7 @@ services:
     volumes:
       - ./keycloak/motorsense-realm.json:/opt/keycloak/data/import/motorsense-realm.json:ro
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep '200 OK'"]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep '200 OK'"]
       interval: 10s
       timeout: 5s
       retries: 10
@@ -44,7 +44,7 @@ services:
     container_name: motorsense-backend
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "8005:8000"
     environment:
       DATABASE_URL: postgresql+psycopg://motor:motorpass@postgres:5432/motorsense
       AUTH_ENABLED: ${AUTH_ENABLED:-false}
@@ -72,7 +72,7 @@ services:
     ports:
       - "5173:80"
     environment:
-      API_BASE_URL: http://localhost:8000
+      API_BASE_URL: http://localhost:8005
       AUTH_ENABLED: ${AUTH_ENABLED:-false}
       KEYCLOAK_URL: http://localhost:8080
       KEYCLOAK_REALM: motorsense

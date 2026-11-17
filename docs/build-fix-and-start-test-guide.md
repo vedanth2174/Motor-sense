@@ -17,7 +17,7 @@
 Ensure your environment variables are configured in the project root:
 
 ```powershell
-cd C:\Studies\Mayur_Final_Year_Project\Motor-sense
+cd "d:\project\BACKUP PROJECT"
 
 # Copy sample environment configuration if .env doesn't exist
 if (-not (Test-Path .env)) { Copy-Item .env.example .env }
@@ -72,15 +72,15 @@ Expected output:
 NAME                    STATUS        PORTS
 motorsense-postgres     Up (healthy)  0.0.0.0:5432->5432/tcp
 motorsense-keycloak     Up (healthy)  0.0.0.0:8080->8080/tcp
-motorsense-backend      Up            0.0.0.0:8000->8000/tcp
+motorsense-backend      Up            0.0.0.0:8005->8000/tcp
 motorsense-frontend     Up            0.0.0.0:5173->80/tcp
 motorsense-simulator    Up            (optional, demo profile)
 ```
 
 ### Access URLs:
 * **React Dashboard:** [http://localhost:5173](http://localhost:5173)
-* **FastAPI Swagger Docs:** [http://localhost:8000/docs](http://localhost:8000/docs)
-* **Backend Health Check:** [http://localhost:8000/api/v1/health/ready](http://localhost:8000/api/v1/health/ready)
+* **FastAPI Swagger Docs:** [http://localhost:8005/docs](http://localhost:8005/docs)
+* **Backend Health Check:** [http://localhost:8005/api/v1/health/ready](http://localhost:8005/api/v1/health/ready)
 * **Keycloak Admin Console:** [http://localhost:8080](http://localhost:8080) (User: `admin` / Password: `admin`)
 
 ---
@@ -142,7 +142,7 @@ Run the automated end-to-end verification script against the running backend:
 
 ```powershell
 # Run smoke test suite
-$env:API_URL="http://localhost:8000"; python smoke_test.py
+$env:API_URL="http://localhost:8005"; python smoke_test.py
 ```
 
 This verifies:

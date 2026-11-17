@@ -18,7 +18,7 @@ export function Header({
   alertCount?: number
   onNavigateToAlerts?: () => void
 }) {
-  const { user } = useAuth()
+  const { user, logout } = useAuth()
   const initials = user?.username ? user.username.slice(0, 2).toUpperCase() : "OP"
 
   return (
@@ -71,8 +71,51 @@ export function Header({
           </button>
         </div>
 
-        <div className="avatar" title={`Signed in as ${user?.username || "operator"} (${user?.roles?.join(", ") || "viewer"})`}>
-          {initials}
+        <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+          <div style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            background: "#0c1424",
+            border: "1px solid #1e293b",
+            padding: "4px 10px 4px 6px",
+            borderRadius: "6px"
+          }}>
+            <div className="avatar" title={`Signed in as ${user?.username || "operator"}`}>
+              {initials}
+            </div>
+            <div style={{ display: "flex", flexDirection: "column" }}>
+              <span style={{ fontSize: "12px", fontWeight: 600, color: "#f8fafc", lineHeight: 1.2 }}>
+                {user?.fullName || user?.username || "Operator"}
+              </span>
+              <span style={{
+                fontSize: "10px",
+                color: user?.isAdmin ? "#60a5fa" : user?.isEngineer ? "#fbbf24" : "#34d399",
+                fontWeight: 700,
+                textTransform: "uppercase",
+                letterSpacing: "0.5px"
+              }}>
+                {user?.roleName || (user?.isAdmin ? "Administrator" : user?.isEngineer ? "Service Man" : "Operator")}
+              </span>
+            </div>
+          </div>
+          <button
+            onClick={logout}
+            style={{
+              background: "#1e293b",
+              border: "1px solid #334155",
+              color: "#cbd5e1",
+              borderRadius: "6px",
+              padding: "6px 12px",
+              fontSize: "11px",
+              cursor: "pointer",
+              fontWeight: 600,
+              transition: "all 0.15s ease"
+            }}
+            title="Sign out of MotorSense"
+          >
+            Sign out
+          </button>
         </div>
       </div>
     </header>
